@@ -7,10 +7,10 @@ const main = async () => {
   const [signer] = await hre.ethers.getSigners()
   const signerAddress = signer.address
 
-  const name0 = "USDT"
-  const symbol0 = "USDT"
+  const name0 = "METH"
+  const symbol0 = "METH"
   const decimals0 = 6
-  const address0 = "0x3637925ee8b837f85c7309e4b291ca56a40457a4"
+  const address0 = "0x4f7a67464b5976d7547c860109e4432d50afb38e"
 
   const name1 = "WETH"
   const symbol1 = "WETH"
@@ -22,9 +22,9 @@ const main = async () => {
   console.log({ balance })
 
   //  USDT balance of signer
-  const usdtContract = new ethers.Contract(address0, ERC20_ABI, provider)
-  const usdtBalance = await usdtContract.balanceOf(signerAddress)
-  console.log({ usdtBalance })
+  const methContract = new ethers.Contract(address0, ERC20_ABI, provider)
+  const methBalance = await methContract.balanceOf(signerAddress)
+  console.log({ methBalance })
 
   //  WETH balance of signer
   const wethContract = new ethers.Contract(address1, ERC20_ABI, provider)

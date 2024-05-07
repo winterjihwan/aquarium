@@ -12,18 +12,20 @@ contract UniswapV3SwapHelper {
     swapRouter = ISwapRouter(_swapRouter);
   }
 
+  uint public testNo = 0;
+
+  function incrementTestNo() external {
+    testNo++;
+  }
+
   // Function to swap tokenA for tokenB
-  function swapTokenForToken(
+  function swapExactInputSingle(
     address tokenIn,
     address tokenOut,
     uint24 fee,
     uint256 amountIn,
-    uint256 amountOutMin,
     address to
-  ) external {
-    // Transfer the specified amount of tokenIn to this contract
-    IERC20(tokenIn).transferFrom(msg.sender, address(this), amountIn);
-
+  ) external returns (uint256 amountOut) {
     // Approve the router to spend tokenIn
     IERC20(tokenIn).approve(address(swapRouter), amountIn);
 
@@ -33,13 +35,13 @@ contract UniswapV3SwapHelper {
       tokenOut: tokenOut,
       fee: fee,
       recipient: to,
-      deadline: block.timestamp + 15 minutes,
+      deadline: block.timestamp,
       amountIn: amountIn,
-      amountOutMinimum: amountOutMin,
+      amountOutMinimum: 0,
       sqrtPriceLimitX96: 0
     });
 
     // Execute the swap
-    swapRouter.exactInputSingle(params);
+    amountOut = swapRouter.exactInputSingle(params);
   }
 }

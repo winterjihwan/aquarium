@@ -24,6 +24,7 @@ const config: HardhatUserConfig = {
     sepolia: {
       url: process.env.RPC_URL,
       accounts: [process.env.PRIVATE_KEY!],
+      blockGasLimit: 100000000,
     },
   },
 }
