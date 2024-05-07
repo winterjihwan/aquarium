@@ -1,17 +1,17 @@
-import { existsSync, mkdirSync, writeFileSync } from "fs";
-import { artifacts } from "hardhat";
-import { join } from "path";
+import { existsSync, mkdirSync, writeFileSync } from "fs"
+import { artifacts } from "hardhat"
+import { join } from "path"
 
 async function main() {
-  const names = await artifacts.getAllFullyQualifiedNames();
+  const names = await artifacts.getAllFullyQualifiedNames()
 
   // [path, name]
   const targetContracts: [string, string][] = [
-    ["contracts/Number.sol:Number", "Number"],
-  ];
+    ["contracts/UniswapV3SwapHelper.sol:UniswapV3SwapHelper", "UniswapV3SwapHelper"],
+  ]
 
-  const abiDir = join(__dirname, "../abi");
-  if (!existsSync(abiDir)) mkdirSync(abiDir);
+  const abiDir = join(__dirname, "../abi")
+  if (!existsSync(abiDir)) mkdirSync(abiDir)
 
   targetContracts.map(([path, name]) => {
     artifacts.readArtifact(path).then((res) => {
@@ -22,9 +22,9 @@ async function main() {
           null,
           2
         )
-      );
-    });
-  });
+      )
+    })
+  })
 }
 
-main();
+main()
