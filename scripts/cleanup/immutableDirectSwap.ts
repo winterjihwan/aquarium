@@ -21,10 +21,10 @@ const symbol0 = "WETH"
 const decimals0 = 18
 const address0 = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"
 
-const name1 = "METH"
-const symbol1 = "METH"
+const name1 = "UNI"
+const symbol1 = "UNI"
 const decimals1 = 18
-const address1 = "0x4f7a67464b5976d7547c860109e4432d50afb38e"
+const address1 = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
 
 async function main() {
   const [signer] = await hre.ethers.getSigners()
@@ -43,7 +43,7 @@ async function main() {
   const tokenContract0 = new ethers.Contract(address0, ERC20ABI, signer)
   const approvalResponse = await tokenContract0
     .connect(connectedWallet)
-    .approve(swapRouterAddress, ethers.parseEther("0.5"))
+    .approve(swapRouterAddress, ethers.parseEther("0.1"))
 
   await approvalResponse.wait()
 
@@ -55,8 +55,8 @@ async function main() {
     fee: 500,
     recipient: signer.address,
     deadline: Math.floor(Date.now() / 1000) + 60 * 10,
-    amountIn: ethers.parseEther("0.3"),
-    amountOutMinimum: 6000000,
+    amountIn: ethers.parseEther("0.0001"),
+    amountOutMinimum: 0,
     sqrtPriceLimitX96: 0,
   }
 
