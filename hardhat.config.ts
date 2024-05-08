@@ -32,6 +32,11 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY!],
       blockGasLimit: 100000000,
     },
+    arbitrumSepolia: {
+      url: process.env.ARBITRUM_RPC_URL,
+      accounts: [process.env.PRIVATE_KEY!],
+      blockGasLimit: 100000000,
+    },
   },
 }
 
