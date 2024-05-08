@@ -19,6 +19,12 @@ const config: HardhatUserConfig = {
       },
     ],
   },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY,
+  },
+  sourcify: {
+    enabled: true,
+  },
   defaultNetwork: "sepolia",
   networks: {
     sepolia: {
