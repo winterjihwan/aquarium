@@ -10,7 +10,10 @@ const config: HardhatUserConfig = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 1000,
+            runs: 2000,
+            details: {
+              yul: true,
+            },
           },
         },
       },
@@ -32,7 +35,7 @@ const config: HardhatUserConfig = {
       accounts: [process.env.PRIVATE_KEY!],
       blockGasLimit: 100000000,
     },
-    arbitrumSepolia: {
+    asepolia: {
       url: process.env.ARBITRUM_RPC_URL,
       accounts: [process.env.PRIVATE_KEY!],
       blockGasLimit: 100000000,

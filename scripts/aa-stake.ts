@@ -4,7 +4,7 @@ import path from "path"
 import { abi as ROUTER02__ABI } from "@uniswap/v2-periphery/build/IUniswapV2Router02.json"
 const ERC20__ABI = require("../abi/ERC20.json")
 
-const AF_ADDRESS = "0x45d3F9a0142D4361947DB3CcE79638403484c55F"
+const AF_ADDRESS = "0xaeb8d850050FFe5c318cD018eadd1810e97Ba4B0"
 const EP_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ADDRESS = "0x2355406C9Ea0D4Ce73FE6C0F688B8fF2922398D7"
 

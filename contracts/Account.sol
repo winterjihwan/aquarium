@@ -18,8 +18,6 @@ contract Account is IAccount, CCIPReceiver {
   uint private salt;
 
   bytes32 private s_lastReceivedMessageId;
-  address private s_lastReceivedTokenAddress;
-  uint256 private s_lastReceivedTokenAmount;
   string private s_lastReceivedText;
 
   constructor(address _owner, address _ccipRouter) CCIPReceiver(_ccipRouter) {
@@ -58,21 +56,19 @@ contract Account is IAccount, CCIPReceiver {
   function AAInitializeDestination(
     uint64 _destinationChainSelector,
     address _receiver,
-    address AACREATE2Handler,
-    address AAuser,
-    address _token,
-    uint256 _amount
+    address AAFactory,
+    address AAUser,
+    address destinationRouter
   ) external returns (bytes32 messageId) {
-    Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-    tokenAmounts[0] = Client.EVMTokenAmount({token: _token, amount: _amount});
+    Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](0);
+    // Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+    // tokenAmounts[0] = Client.EVMTokenAmount({token: _token, amount: _amount});
 
-    uint8 multiplex = 1;
-    bytes memory callData = abi.encodeWithSignature("initialize()", AAuser);
-    bytes memory encodeData = abi.encode(multiplex, AACREATE2Handler, callData);
+    bytes memory encodedData = encodeData(0, AAFactory, AAUser, destinationRouter);
 
     Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
       receiver: abi.encode(_receiver),
-      data: encodeData,
+      data: encodedData,
       tokenAmounts: tokenAmounts,
       extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 200_000})),
       feeToken: address(0)
@@ -83,36 +79,38 @@ contract Account is IAccount, CCIPReceiver {
     uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
     if (fees > address(this).balance) revert("Not enough balance");
 
-    IERC20(_token).approve(address(router), _amount);
     messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
     return messageId;
   }
 
+  function encodeData(
+    uint8 multiplex,
+    address AAFactory,
+    address AAUser,
+    address router
+  ) internal pure returns (bytes memory) {
+    bytes memory callData = abi.encodeWithSignature("initialize()", AAUser, router);
+    bytes memory encodedData = abi.encode(multiplex, AAFactory, callData);
+
+    return encodedData;
+  }
+
   function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
-    (uint8 multiplex, address AACREATE2Handler, bytes memory callData) = abi.decode(
-      message.data,
-      (uint8, address, bytes)
-    );
+    (uint8 multiplex, address AAFactory, bytes memory callData) = abi.decode(message.data, (uint8, address, bytes));
 
     // Initialize AA multiplexor
-    if (multiplex == 0) {
-      (bool success, ) = AACREATE2Handler.call(callData);
+    if (multiplex == 1) {
+      (bool success, ) = AAFactory.call(callData);
 
       require(success, "Low-level call failed");
     }
 
     s_lastReceivedMessageId = message.messageId;
     s_lastReceivedText = abi.decode(message.data, (string));
-    s_lastReceivedTokenAddress = message.destTokenAmounts[0].token;
-    s_lastReceivedTokenAmount = message.destTokenAmounts[0].amount;
   }
 
-  function getLastReceivedMessageDetails()
-    public
-    view
-    returns (bytes32 messageId, string memory text, address tokenAddress, uint256 tokenAmount)
-  {
-    return (s_lastReceivedMessageId, s_lastReceivedText, s_lastReceivedTokenAddress, s_lastReceivedTokenAmount);
+  function getLastReceivedMessageDetails() public view returns (bytes32 messageId, string memory text) {
+    return (s_lastReceivedMessageId, s_lastReceivedText);
   }
 
   // ------------------------------ DEPOSIT, WITHDRAW ------------------------------

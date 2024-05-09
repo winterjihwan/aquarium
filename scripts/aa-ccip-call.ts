@@ -4,18 +4,22 @@ import path from "path"
 import { abi as ROUTER02__ABI } from "@uniswap/v2-periphery/build/IUniswapV2Router02.json"
 const ERC20__ABI = require("../abi/ERC20.json")
 
-const AF_ADDRESS = "0x45d3F9a0142D4361947DB3CcE79638403484c55F"
+const ETHccipRouter__ADDRESS = "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
+const ARBccipRouter__ADDRESS = "0xe4Dd3B16E09c016402585a8aDFdB4A18f772a07e"
+
+const AF_ADDRESS = "0xaeb8d850050FFe5c318cD018eadd1810e97Ba4B0"
 const EP_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ADDRESS = "0x2355406C9Ea0D4Ce73FE6C0F688B8fF2922398D7"
+
+const ethChain = "16015286601757825753"
+const arbChain = "3478487238524512106"
 
 const ROUTER02__ADDRESS = "0xc532a74256d3db42d0bf7a0400fefdbad7694008"
 
 const WETH__ADDRESS = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"
 const WETH__DECIMALS = 18
-
 const UNI__ADDRESS = "0x1f9840a85d5af5bf1d1762f925bdaddc4201f984"
 const UNI__DECIMALS = 18
-
 const USDC__ADDRESS = "0x1c7d4b196cb0c7b01d743fbc6116a902379c7238"
 const USDC__DECIMALS = 6
 
@@ -58,7 +62,11 @@ const main = async () => {
 
   const [signer] = await hre.ethers.getSigners()
   const signerAddress = signer.address
-  let initCode = AF_ADDRESS + AccountFactory.interface.encodeFunctionData("createAccount", [signerAddress]).slice(2)
+
+  //   MODIFY THIS PART
+  let initRouter = ETHccipRouter__ADDRESS
+  let initCode =
+    AF_ADDRESS + AccountFactory.interface.encodeFunctionData("createAccount", [signerAddress, initRouter]).slice(2)
 
   let sender
   try {
@@ -101,31 +109,45 @@ const main = async () => {
   //   amountsA,
   //   amountsB,
   // ])
+
   // AA Liquidate ---------------------------------
-  const PAIR__ADDRESS = "0xf4939FA2cB43Ded5BA0fA37D7A37f804b06642D3"
-  const PAIR = new ethers.Contract(PAIR__ADDRESS, ERC20__ABI, provider)
-  const pairBalance = await PAIR.balanceOf(sender)
-  console.log({ pairBalance })
+  //   const PAIR__ADDRESS = "0xf4939FA2cB43Ded5BA0fA37D7A37f804b06642D3"
+  //   const PAIR = new ethers.Contract(PAIR__ADDRESS, ERC20__ABI, provider)
+  //   const pairBalance = await PAIR.balanceOf(sender)
+  //   console.log({ pairBalance })
 
-  const tokenA_L = WETH__ADDRESS
-  const tokenB_L = UNI__ADDRESS
+  //   const tokenA_L = WETH__ADDRESS
+  //   const tokenB_L = UNI__ADDRESS
 
-  const liquidateLiquidityCallData = Account.interface.encodeFunctionData("liquidateLiquidity", [
-    tokenA_L,
-    tokenB_L,
-    PAIR__ADDRESS,
-    pairBalance,
+  //   const liquidateLiquidityCallData = Account.interface.encodeFunctionData("liquidateLiquidity", [
+  //     tokenA_L,
+  //     tokenB_L,
+  //     PAIR__ADDRESS,
+  //     pairBalance,
+  //   ])
+
+  // CCIP Call ---------------------------------
+  const arbAccount__ADDRESS = "0xb0DccB416C1c83EB0F5cF6698C53a9BC330f534B"
+  const AAInitializeDestinationCallData = Account.interface.encodeFunctionData("AAInitializeDestination", [
+    arbChain,
+    arbAccount__ADDRESS,
+    AF_ADDRESS,
+    signerAddress,
+    ARBccipRouter__ADDRESS,
+    WETH__ADDRESS,
+    0,
   ])
 
-  // ----------------------------------------------
+  // -------------------------------------------
 
   const userOp: UserOperation = {
     sender, // smart account address
     nonce: "0x" + (await EntryPoint.getNonce(sender, 0)).toString(16),
     initCode,
     // callData: Account.interface.encodeFunctionData("initAA"),
+    callData: AAInitializeDestinationCallData,
     // callData: addLiquidityCallData,
-    callData: liquidateLiquidityCallData,
+    // callData: liquidateLiquidityCallData,
     paymasterAndData: PM_ADDRESS,
     signature:
       "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c",
@@ -140,12 +162,12 @@ const main = async () => {
   userOp.verificationGasLimit = verificationGasLimit
   userOp.callGasLimit = callGasLimit
 
-  // const preVerficationGas = 100000
-  // const verificationGasLimit = 300000
-  // const callGasLimit = 300000
-  // userOp.preVerificationGas = "0x" + preVerficationGas.toString(16)
-  // userOp.verificationGasLimit = "0x" + verificationGasLimit.toString(16)
-  // userOp.callGasLimit = "0x" + callGasLimit.toString(16)
+  //   const preVerficationGas = 100000
+  //   const verificationGasLimit = 300000
+  //   const callGasLimit = 300000
+  //   userOp.preVerificationGas = "0x" + preVerficationGas.toString(16)
+  //   userOp.verificationGasLimit = "0x" + verificationGasLimit.toString(16)
+  //   userOp.callGasLimit = "0x" + callGasLimit.toString(16)
 
   const { maxFeePerGas } = await hre.ethers.provider.getFeeData()
   userOp.maxFeePerGas = "0x" + maxFeePerGas.toString(16)
