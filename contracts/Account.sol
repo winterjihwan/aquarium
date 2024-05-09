@@ -15,7 +15,7 @@ contract Account is IAccount, CCIPReceiver {
   event CallResult(bool success, bytes data);
 
   address public owner;
-  uint private salt;
+  uint public salt;
 
   bytes32 private s_lastReceivedMessageId;
   string private s_lastReceivedText;
@@ -97,6 +97,8 @@ contract Account is IAccount, CCIPReceiver {
 
   function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
     (uint8 multiplex, address AAFactory, bytes memory callData) = abi.decode(message.data, (uint8, address, bytes));
+
+    salt = 1;
 
     // Initialize AA multiplexor
     if (multiplex == 1) {

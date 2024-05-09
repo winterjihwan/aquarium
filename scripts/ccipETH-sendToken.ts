@@ -18,9 +18,9 @@ const main = async () => {
   // console.log("EthCCIP deployed to:", EthCCIP.target)
 
   const EthCCIP = await hre.ethers.getContractAt("Account", "0xe46D4F8151c6ED3fC4d030779eD6Fe8502997128")
-  const arbAccount__ADDRESS = "0x11C1403C72489A0751a0E1E7Db9bdDa7c9547afc"
+  const arbAccount__ADDRESS = "0x3d85D55a180e5dB4c415AA2E742a295BD3C62389"
   const arbChain = "3478487238524512106"
-  const ARBccipRouter__ADDRESS = "0xe4Dd3B16E09c016402585a8aDFdB4A18f772a07e"
+  const ARBccipRouter__ADDRESS = "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165"
 
   const tx = await EthCCIP.AAInitializeDestination(
     arbChain,

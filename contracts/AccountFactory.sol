@@ -5,6 +5,8 @@ pragma solidity ^0.8.9;
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "./Account.sol";
 
+event AccountCreated(address account);
+
 contract AccountFactory {
   function createAccount(address owner, address router) external returns (address) {
     bytes32 salt = bytes32(uint256(uint160(owner)));
@@ -14,6 +16,7 @@ contract AccountFactory {
     address addr = Create2.computeAddress(salt, keccak256(bytecode));
     uint256 codeSize = addr.code.length;
     if (codeSize > 0) {
+      emit AccountCreated(addr);
       return addr;
     }
 
@@ -27,5 +30,6 @@ contract AccountFactory {
       addr := create2(0, add(bytecode, 0x20), mload(bytecode), salt)
     }
     require(addr != address(0), "Create2: Failed on deploy");
+    emit AccountCreated(addr);
   }
 }

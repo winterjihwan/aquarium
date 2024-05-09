@@ -9,13 +9,13 @@ const AF_ADDRESS = "0x46575cD09BD35082C1b7D381808A4E3b562ad7A9"
 const EP_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ADDRESS = "0x2355406C9Ea0D4Ce73FE6C0F688B8fF2922398D7"
 
-const AF_ARB_ADDRESS = "0xF287288a89F0D08540Cc5f323e4555bd808aadF7"
+const AF_ARB_ADDRESS = "0x7F178949a1b2f1Ef244B847702909620EEe877C5"
 const EP_ARB_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ARB_ADDRESS = "0x83211C4E47E28c1B4895028052b4dc5F59abefc4"
 
 // CCIP Constants
 const ETHccipRouter__ADDRESS = "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
-const ARBccipRouter__ADDRESS = "0xe4Dd3B16E09c016402585a8aDFdB4A18f772a07e"
+const ARBccipRouter__ADDRESS = "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165"
 
 const ethChain = "16015286601757825753"
 const arbChain = "3478487238524512106"
@@ -119,7 +119,7 @@ const main = async () => {
   //   ])
 
   // CCIP Call ---------------------------------
-  const arbAccount__ADDRESS = "0xb0DccB416C1c83EB0F5cF6698C53a9BC330f534B"
+  const arbAccount__ADDRESS = "0xAb4046aE817BDD6F155F721F649E40BE7e3Cce32"
   const AAInitializeDestinationCallData = Account.interface.encodeFunctionData("AAInitializeDestination", [
     arbChain,
     arbAccount__ADDRESS,
@@ -134,8 +134,8 @@ const main = async () => {
     sender, // smart account address
     nonce: "0x" + (await EntryPoint.getNonce(sender, 0)).toString(16),
     initCode,
-    callData: Account.interface.encodeFunctionData("initAA"),
-    // callData: AAInitializeDestinationCallData,
+    // callData: Account.interface.encodeFunctionData("initAA"),
+    callData: AAInitializeDestinationCallData,
     // callData: addLiquidityCallData,
     // callData: liquidateLiquidityCallData,
     paymasterAndData: PM_ADDRESS,
