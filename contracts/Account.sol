@@ -167,4 +167,7 @@ contract Account is IAccount, CCIPReceiver {
       block.timestamp + 300
     );
   }
+
+  // ------------------------------ FALLBACK ------------------------------
+  receive() external payable {}
 }

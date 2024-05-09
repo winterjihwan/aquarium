@@ -17,7 +17,7 @@ const main = async () => {
   // await EthCCIP.waitForDeployment()
   // console.log("EthCCIP deployed to:", EthCCIP.target)
 
-  const EthCCIP = await hre.ethers.getContractAt("Account", "0x050dCBdcA76B46922b9e3cd0cb14c04269a65AE9")
+  const EthCCIP = await hre.ethers.getContractAt("Account", "0xe46D4F8151c6ED3fC4d030779eD6Fe8502997128")
   const arbAccount__ADDRESS = "0x11C1403C72489A0751a0E1E7Db9bdDa7c9547afc"
   const arbChain = "3478487238524512106"
   const ARBccipRouter__ADDRESS = "0xe4Dd3B16E09c016402585a8aDFdB4A18f772a07e"
@@ -33,15 +33,6 @@ const main = async () => {
   console.log(`Transaction hash: ${tx}`)
   const txr = await tx.wait()
   console.log("Transaction confirmed", txr)
-
-  // function AAInitializeDestination(
-  //   uint64 _destinationChainSelector,
-  //   address _receiver,
-  //   address AAFactory,
-  //   address AAUser,
-  //   address destinationRouter,
-  //   address _token,
-  //   uint256 _amount
 
   //   WhiteList-----------------------------------
   // const arbChain = "3478487238524512106"

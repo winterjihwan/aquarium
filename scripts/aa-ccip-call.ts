@@ -4,16 +4,23 @@ import path from "path"
 import { abi as ROUTER02__ABI } from "@uniswap/v2-periphery/build/IUniswapV2Router02.json"
 const ERC20__ABI = require("../abi/ERC20.json")
 
-const ETHccipRouter__ADDRESS = "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
-const ARBccipRouter__ADDRESS = "0xe4Dd3B16E09c016402585a8aDFdB4A18f772a07e"
-
-const AF_ADDRESS = "0xaeb8d850050FFe5c318cD018eadd1810e97Ba4B0"
+// AA constants
+const AF_ADDRESS = "0x46575cD09BD35082C1b7D381808A4E3b562ad7A9"
 const EP_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ADDRESS = "0x2355406C9Ea0D4Ce73FE6C0F688B8fF2922398D7"
+
+const AF_ARB_ADDRESS = "0xF287288a89F0D08540Cc5f323e4555bd808aadF7"
+const EP_ARB_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
+const PM_ARB_ADDRESS = "0x83211C4E47E28c1B4895028052b4dc5F59abefc4"
+
+// CCIP Constants
+const ETHccipRouter__ADDRESS = "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
+const ARBccipRouter__ADDRESS = "0xe4Dd3B16E09c016402585a8aDFdB4A18f772a07e"
 
 const ethChain = "16015286601757825753"
 const arbChain = "3478487238524512106"
 
+// Uniswap Constants
 const ROUTER02__ADDRESS = "0xc532a74256d3db42d0bf7a0400fefdbad7694008"
 
 const WETH__ADDRESS = "0xfff9976782d46cc05630d1f6ebab18b2324d6b14"
@@ -35,21 +42,6 @@ interface UserOperation {
   callGasLimit?: number | string
   maxFeePerGas?: string
   maxPriorityFeePerGas?: string
-}
-
-const readABI = async (address: string) => {
-  const dirPath = path.join(__dirname, "../abi")
-  const filePath = path.join(dirPath, `${address}.json`)
-
-  try {
-    await fs.access(filePath)
-    const abiJson = await fs.readFile(filePath, "utf8")
-    const abi = JSON.parse(abiJson)
-    return abi
-  } catch (error) {
-    console.error("Error reading ABI from file:", error)
-    return null
-  }
 }
 
 const main = async () => {
@@ -134,8 +126,6 @@ const main = async () => {
     AF_ADDRESS,
     signerAddress,
     ARBccipRouter__ADDRESS,
-    WETH__ADDRESS,
-    0,
   ])
 
   // -------------------------------------------
@@ -144,8 +134,8 @@ const main = async () => {
     sender, // smart account address
     nonce: "0x" + (await EntryPoint.getNonce(sender, 0)).toString(16),
     initCode,
-    // callData: Account.interface.encodeFunctionData("initAA"),
-    callData: AAInitializeDestinationCallData,
+    callData: Account.interface.encodeFunctionData("initAA"),
+    // callData: AAInitializeDestinationCallData,
     // callData: addLiquidityCallData,
     // callData: liquidateLiquidityCallData,
     paymasterAndData: PM_ADDRESS,
@@ -157,11 +147,11 @@ const main = async () => {
     "eth_estimateUserOperationGas",
     [userOp, EP_ADDRESS]
   )
-
   userOp.preVerificationGas = preVerificationGas
   userOp.verificationGasLimit = verificationGasLimit
   userOp.callGasLimit = callGasLimit
 
+  //   userOp manual input---------------------------
   //   const preVerficationGas = 100000
   //   const verificationGasLimit = 300000
   //   const callGasLimit = 300000
