@@ -20,21 +20,41 @@ const main = async () => {
   const EthCCIP = await hre.ethers.getContractAt("ProgrammableTokenTransfers", ETHCCIP__ADDRESS)
 
   //   WhiteList-----------------------------------
-  const arbChain = "3478487238524512106"
+  // const arbChain = "3478487238524512106"
 
-  const whitelistDestinationTx = await EthCCIP.allowlistDestinationChain(arbChain, true)
-  await whitelistDestinationTx.wait()
+  // const whitelistDestinationTx = await EthCCIP.allowlistDestinationChain(arbChain, true)
+  // await whitelistDestinationTx.wait()
 
   //   Fund CCIP-BnM--------------------------------
-  const ccipBnM__ADDRESS = "0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05"
-  const CCIPBnM = new ethers.Contract(ccipBnM__ADDRESS, ERC20__ABI, signer)
-  await CCIPBnM.approve(EthCCIP.target, ethers.parseEther("1000"))
+  // const ccipBnM__ADDRESS = "0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05"
+  // const CCIPBnM = new ethers.Contract(ccipBnM__ADDRESS, ERC20__ABI, signer)
+  // await CCIPBnM.approve(EthCCIP.target, ethers.parseEther("1000"))
 
-  const transaction = signer.sendTransaction({
-    from: signer.address,
-    to: EthCCIP.target,
-    value: ethers.parseEther("0.1"),
+  // const transaction = signer.sendTransaction({
+  //   from: signer.address,
+  //   to: EthCCIP.target,
+  //   value: ethers.parseEther("0.1"),
+  // })
+
+  // Send Token and Data---------------------------
+  const _destinationChainSelector = "3478487238524512106"
+  const _receiver = ARBCCIP__ADDRESS
+  const _text = "deploy:" + signer.address
+  const _token = "0xFd57b4ddBf88a4e07fF4e34C487b99af2Fe82a05"
+  const _amount = ethers.parseEther("0.01")
+
+  const whitelisted = await EthCCIP.allowlistedDestinationChains(_destinationChainSelector)
+  console.log({ whitelisted })
+
+  const CCIPBnM = new ethers.Contract(_token, ERC20__ABI, signer)
+  const ccipBalance = await CCIPBnM.balanceOf(ETHCCIP__ADDRESS)
+  console.log({ ccipBalance })
+
+  const sendTokenTx = await EthCCIP.sendMessagePayNative(_destinationChainSelector, _receiver, _text, _token, _amount, {
+    gasLimit: 3000000,
   })
+  console.log("sendTokenTx:", sendTokenTx.hash)
+  await sendTokenTx.wait()
 }
 
 main().catch((error) => {

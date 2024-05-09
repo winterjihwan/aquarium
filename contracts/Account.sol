@@ -6,14 +6,23 @@ import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@uniswap/v2-periphery/contracts/interfaces/IUniswapV2Router02.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
+import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
+import {SafeERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
 
-contract Account is IAccount {
+contract Account is IAccount, CCIPReceiver {
   event CallResult(bool success, bytes data);
 
   address public owner;
   uint private salt;
 
-  constructor(address _owner) {
+  bytes32 private s_lastReceivedMessageId;
+  address private s_lastReceivedTokenAddress;
+  uint256 private s_lastReceivedTokenAmount;
+  string private s_lastReceivedText;
+
+  constructor(address _owner, address _ccipRouter) CCIPReceiver(_ccipRouter) {
     owner = _owner;
   }
 
@@ -43,6 +52,67 @@ contract Account is IAccount {
     (bool success, bytes memory result) = target.call(data);
     require(success, "Call failed");
     emit CallResult(success, result);
+  }
+
+  // ------------------------------ CCIP ------------------------------
+  function AAInitializeDestination(
+    uint64 _destinationChainSelector,
+    address _receiver,
+    address AACREATE2Handler,
+    address AAuser,
+    address _token,
+    uint256 _amount
+  ) external returns (bytes32 messageId) {
+    Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+    tokenAmounts[0] = Client.EVMTokenAmount({token: _token, amount: _amount});
+
+    uint8 multiplex = 1;
+    bytes memory callData = abi.encodeWithSignature("initialize()", AAuser);
+    bytes memory encodeData = abi.encode(multiplex, AACREATE2Handler, callData);
+
+    Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
+      receiver: abi.encode(_receiver),
+      data: encodeData,
+      tokenAmounts: tokenAmounts,
+      extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 200_000})),
+      feeToken: address(0)
+    });
+
+    IRouterClient router = IRouterClient(this.getRouter());
+
+    uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
+    if (fees > address(this).balance) revert("Not enough balance");
+
+    IERC20(_token).approve(address(router), _amount);
+    messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
+    return messageId;
+  }
+
+  function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
+    (uint8 multiplex, address AACREATE2Handler, bytes memory callData) = abi.decode(
+      message.data,
+      (uint8, address, bytes)
+    );
+
+    // Initialize AA multiplexor
+    if (multiplex == 0) {
+      (bool success, ) = AACREATE2Handler.call(callData);
+
+      require(success, "Low-level call failed");
+    }
+
+    s_lastReceivedMessageId = message.messageId;
+    s_lastReceivedText = abi.decode(message.data, (string));
+    s_lastReceivedTokenAddress = message.destTokenAmounts[0].token;
+    s_lastReceivedTokenAmount = message.destTokenAmounts[0].amount;
+  }
+
+  function getLastReceivedMessageDetails()
+    public
+    view
+    returns (bytes32 messageId, string memory text, address tokenAddress, uint256 tokenAmount)
+  {
+    return (s_lastReceivedMessageId, s_lastReceivedText, s_lastReceivedTokenAddress, s_lastReceivedTokenAmount);
   }
 
   // ------------------------------ DEPOSIT, WITHDRAW ------------------------------
