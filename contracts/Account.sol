@@ -16,6 +16,8 @@ contract Account is IAccount, CCIPReceiver {
 
   address public owner;
   uint public salt;
+  address public creationAddress;
+  bytes32 public latestSourceMessage;
 
   bytes32 private s_lastReceivedMessageId;
   string private s_lastReceivedText;
@@ -80,6 +82,7 @@ contract Account is IAccount, CCIPReceiver {
     if (fees > address(this).balance) revert("Not enough balance");
 
     messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
+    latestSourceMessage = messageId;
     return messageId;
   }
 
@@ -89,7 +92,7 @@ contract Account is IAccount, CCIPReceiver {
     address AAUser,
     address router
   ) internal pure returns (bytes memory) {
-    bytes memory callData = abi.encodeWithSignature("initialize()", AAUser, router);
+    bytes memory callData = abi.encodeWithSignature("createAccount(address,address)", AAUser, router);
     bytes memory encodedData = abi.encode(multiplex, AAFactory, callData);
 
     return encodedData;
@@ -98,13 +101,12 @@ contract Account is IAccount, CCIPReceiver {
   function _ccipReceive(Client.Any2EVMMessage memory message) internal override {
     (uint8 multiplex, address AAFactory, bytes memory callData) = abi.decode(message.data, (uint8, address, bytes));
 
-    salt = 1;
-
     // Initialize AA multiplexor
-    if (multiplex == 1) {
-      (bool success, ) = AAFactory.call(callData);
-
+    if (multiplex == 0) {
+      (bool success, bytes memory returnData) = AAFactory.call(callData);
       require(success, "Low-level call failed");
+
+      creationAddress = abi.decode(returnData, (address));
     }
 
     s_lastReceivedMessageId = message.messageId;

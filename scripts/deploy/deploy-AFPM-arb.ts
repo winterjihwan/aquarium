@@ -7,7 +7,7 @@ async function main() {
   console.log(`AF deployed to: ${AF.target}`)
 
   // const pm = await hre.ethers.getContractFactory("Paymaster")
-  // const PM = await pm.deploy()
+  // const PM =a await pm.deploy()
   // await PM.waitForDeployment()
   // console.log(`PM deployed to: ${PM.target}`)
 }

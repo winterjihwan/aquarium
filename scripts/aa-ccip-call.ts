@@ -5,11 +5,11 @@ import { abi as ROUTER02__ABI } from "@uniswap/v2-periphery/build/IUniswapV2Rout
 const ERC20__ABI = require("../abi/ERC20.json")
 
 // AA constants
-const AF_ADDRESS = "0x46575cD09BD35082C1b7D381808A4E3b562ad7A9"
+const AF_ADDRESS = "0x8D337F442dE4CD40C3439aB4C8f52F2A540188Bb"
 const EP_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ADDRESS = "0x2355406C9Ea0D4Ce73FE6C0F688B8fF2922398D7"
 
-const AF_ARB_ADDRESS = "0x7F178949a1b2f1Ef244B847702909620EEe877C5"
+const AF_ARB_ADDRESS = "0xa51604f35765724ACC4206E859e50e5A0f5C1008"
 const EP_ARB_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ARB_ADDRESS = "0x83211C4E47E28c1B4895028052b4dc5F59abefc4"
 
@@ -55,7 +55,6 @@ const main = async () => {
   const [signer] = await hre.ethers.getSigners()
   const signerAddress = signer.address
 
-  //   MODIFY THIS PART
   let initRouter = ETHccipRouter__ADDRESS
   let initCode =
     AF_ADDRESS + AccountFactory.interface.encodeFunctionData("createAccount", [signerAddress, initRouter]).slice(2)
@@ -119,7 +118,7 @@ const main = async () => {
   //   ])
 
   // CCIP Call ---------------------------------
-  const arbAccount__ADDRESS = "0xAb4046aE817BDD6F155F721F649E40BE7e3Cce32"
+  const arbAccount__ADDRESS = "0x02Fc483cc658d0a9D5d6B4e6EB97F592c9A10204"
   const AAInitializeDestinationCallData = Account.interface.encodeFunctionData("AAInitializeDestination", [
     arbChain,
     arbAccount__ADDRESS,
