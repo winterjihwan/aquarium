@@ -1,7 +1,7 @@
 import { ethers } from "ethers"
 
-const walletAddress = "0x1f4B739eacfea943De2656141A1bCD628dF46706"
-const privateKey = "155d12614437aa543645e06c54430e43e0265761520d2a294ffad4fea99a0a95"
+const walletAddress = "0xf766Bf171E71411e5641E35628A083Ad36bdA635"
+const privateKey = "edb769fce5204ef5273f56a309e03ffbc1d0739e15d5084d8bf400c7a4e87435"
 
 const main = async () => {
   const wallet = ethers.Wallet.createRandom()

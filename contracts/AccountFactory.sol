@@ -3,14 +3,14 @@
 pragma solidity ^0.8.9;
 
 import "@openzeppelin/contracts/utils/Create2.sol";
-import "./Account.sol";
+import "./AccountNative.sol";
 
 event AccountCreated(address account);
 
 contract AccountFactory {
   function createAccount(address owner, address router) external returns (address) {
     bytes32 salt = bytes32(uint256(uint160(owner)));
-    bytes memory creationCode = type(Account).creationCode;
+    bytes memory creationCode = type(AccountNative).creationCode;
     bytes memory bytecode = abi.encodePacked(creationCode, abi.encode(owner, router));
 
     address addr = Create2.computeAddress(salt, keccak256(bytecode));
