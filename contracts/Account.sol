@@ -20,6 +20,7 @@ contract Account is IAccount, CCIPReceiver {
   bytes32 public latestSourceMessage;
 
   bytes32 private s_lastReceivedMessageId;
+  bytes private s_lastReceivedTextBytes;
   string private s_lastReceivedText;
 
   constructor(address _owner, address _ccipRouter) CCIPReceiver(_ccipRouter) {
@@ -72,7 +73,7 @@ contract Account is IAccount, CCIPReceiver {
       receiver: abi.encode(_receiver),
       data: encodedData,
       tokenAmounts: tokenAmounts,
-      extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 200_000})),
+      extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 3_000_000})),
       feeToken: address(0)
     });
 
@@ -111,10 +112,15 @@ contract Account is IAccount, CCIPReceiver {
 
     s_lastReceivedMessageId = message.messageId;
     s_lastReceivedText = abi.decode(message.data, (string));
+    s_lastReceivedTextBytes = message.data;
   }
 
-  function getLastReceivedMessageDetails() public view returns (bytes32 messageId, string memory text) {
-    return (s_lastReceivedMessageId, s_lastReceivedText);
+  function getLastReceivedMessageDetails()
+    public
+    view
+    returns (bytes32 messageId, string memory text, bytes memory textBytes)
+  {
+    return (s_lastReceivedMessageId, s_lastReceivedText, s_lastReceivedTextBytes);
   }
 
   // ------------------------------ DEPOSIT, WITHDRAW ------------------------------

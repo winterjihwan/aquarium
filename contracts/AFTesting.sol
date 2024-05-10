@@ -5,6 +5,7 @@ import {AccountFactory} from "./AccountFactory.sol";
 
 contract AFTesting {
   AccountFactory public AF;
+  address public creationAddress;
 
   function encodeData(
     uint8 multiplex,
@@ -23,13 +24,14 @@ contract AFTesting {
 
     address addr;
 
-    if (multiplex == 1) {
+    if (multiplex == 0) {
       // Perform a low-level call to the `call()` function of AAFactory
       (bool success, bytes memory returnData) = AAFactory.call(callData);
       require(success, "Low-level call failed");
 
       // Decode the address returned from the call if applicable
       addr = abi.decode(returnData, (address));
+      creationAddress = addr;
     }
     return addr;
   }

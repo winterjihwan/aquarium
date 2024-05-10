@@ -23,18 +23,18 @@ const config: HardhatUserConfig = {
     ],
   },
   etherscan: {
-    // apiKey: process.env.ETHERSCAN_API_KEY,
-    apiKey: process.env.ARBISCAN_API_KEY,
-    customChains: [
-      {
-        network: "arbitrumSepolia",
-        chainId: 421614,
-        urls: {
-          apiURL: "https://api-sepolia.arbiscan.io/api",
-          browserURL: "https://sepolia.arbiscan.io/",
-        },
-      },
-    ],
+    apiKey: process.env.ETHERSCAN_API_KEY,
+    // apiKey: process.env.ARBISCAN_API_KEY,
+    // customChains: [
+    //   {
+    //     network: "arbitrumSepolia",
+    //     chainId: 421614,
+    //     urls: {
+    //       apiURL: "https://api-sepolia.arbiscan.io/api",
+    //       browserURL: "https://sepolia.arbiscan.io/",
+    //     },
+    //   },
+    // ],
   },
   sourcify: {
     enabled: true,
@@ -43,7 +43,7 @@ const config: HardhatUserConfig = {
   networks: {
     sepolia: {
       url: process.env.RPC_URL,
-      accounts: [process.env.PRIVATE_KEY!],
+      accounts: ["155d12614437aa543645e06c54430e43e0265761520d2a294ffad4fea99a0a95", process.env.PRIVATE_KEY!],
       blockGasLimit: 100000000,
     },
     asepolia: {

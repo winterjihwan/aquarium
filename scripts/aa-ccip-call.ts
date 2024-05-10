@@ -5,11 +5,11 @@ import { abi as ROUTER02__ABI } from "@uniswap/v2-periphery/build/IUniswapV2Rout
 const ERC20__ABI = require("../abi/ERC20.json")
 
 // AA constants
-const AF_ADDRESS = "0x8D337F442dE4CD40C3439aB4C8f52F2A540188Bb"
+const AF_ADDRESS = "0x948d4b3FC91d27bD71C8525648B3Af1824897e79"
 const EP_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ADDRESS = "0x2355406C9Ea0D4Ce73FE6C0F688B8fF2922398D7"
 
-const AF_ARB_ADDRESS = "0xa51604f35765724ACC4206E859e50e5A0f5C1008"
+const AF_ARB_ADDRESS = "0x4E4FDC3370D42c41082b3CcA9f4E291f5503f631"
 const EP_ARB_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ARB_ADDRESS = "0x83211C4E47E28c1B4895028052b4dc5F59abefc4"
 
@@ -118,11 +118,11 @@ const main = async () => {
   //   ])
 
   // CCIP Call ---------------------------------
-  const arbAccount__ADDRESS = "0x02Fc483cc658d0a9D5d6B4e6EB97F592c9A10204"
+  const arbAccount__ADDRESS = "0x5B6Ea6d828c57749cD15B0F7c1558486b02C2e00"
   const AAInitializeDestinationCallData = Account.interface.encodeFunctionData("AAInitializeDestination", [
     arbChain,
     arbAccount__ADDRESS,
-    AF_ADDRESS,
+    AF_ARB_ADDRESS,
     signerAddress,
     ARBccipRouter__ADDRESS,
   ])
