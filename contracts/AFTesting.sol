@@ -24,9 +24,27 @@ contract AFTesting {
 
     address addr;
 
+    address nativeAccount = msg.sender;
+    address AAUser;
+    address router;
+
+    {
+      assembly {
+        AAUser := mload(add(callData, 36))
+        router := mload(add(callData, 68))
+      }
+    }
+
+    bytes memory modifiedCallData = abi.encodeWithSignature(
+      "createAccount(address,address,address)",
+      AAUser,
+      router,
+      nativeAccount
+    );
+
     if (multiplex == 0) {
       // Perform a low-level call to the `call()` function of AAFactory
-      (bool success, bytes memory returnData) = AAFactory.call(callData);
+      (bool success, bytes memory returnData) = AAFactory.call(modifiedCallData);
       require(success, "Low-level call failed");
 
       // Decode the address returned from the call if applicable

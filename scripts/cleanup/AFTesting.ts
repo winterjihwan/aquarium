@@ -1,6 +1,7 @@
 import { ethers, randomBytes } from "ethers"
 
-const AFTesting__ADDRESS = "0x20269612573d5885E16808301A73e33DC95123CE"
+const AF_ARB_ADDRESS = "0x74Ad8Af1Ff7e444Af9256D35Fa415A44E823461c"
+const CCIPRouterArb__ADDRESS = "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165"
 
 async function main() {
   const afTesting = await hre.ethers.getContractFactory("AFTesting")
@@ -8,20 +9,11 @@ async function main() {
   await AFTesting.waitForDeployment()
   console.log(`AFTesting deployed to: ${AFTesting.target}`)
 
-  const wallet = ethers.Wallet.createRandom()
+  const [signer] = await hre.ethers.getSigners()
 
   //   const AFTesting = await hre.ethers.getContractAt("AFTesting", AFTesting__ADDRESS)
 
-  // uint8 multiplex,
-  // address AAFactory,
-  // address AAUser,
-  // address router
-  const data = await AFTesting.encodeData(
-    0,
-    "0xDF4769DD71BF3685a9e952C29225C83BF2BC31f9",
-    wallet.address,
-    "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165"
-  )
+  const data = await AFTesting.encodeData(0, AF_ARB_ADDRESS, signer.address, CCIPRouterArb__ADDRESS)
   console.log("Encoded data: ", data)
 
   const tx = await AFTesting.onReceive(data)

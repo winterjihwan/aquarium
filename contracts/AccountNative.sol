@@ -12,7 +12,7 @@ import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications
 import {SafeERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Paymaster} from "./Paymaster.sol";
 
-contract CopyAccount is IAccount, CCIPReceiver {
+contract AccountNative is IAccount, CCIPReceiver {
   event CallResult(bool success, bytes data);
 
   address public owner;
@@ -79,14 +79,8 @@ contract CopyAccount is IAccount, CCIPReceiver {
       feeToken: address(0)
     });
 
-    // IRouterClient router = IRouterClient(this.getRouter());
-
-    // uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
-    // if (fees > address(this).balance) revert("Not enough balance");
-
     Paymaster PM = Paymaster(payable(paymaster));
     messageId = PM.ccipFeeOnBehalf(_destinationChainSelector, this.getRouter(), evm2AnyMessage);
-    // messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
 
     latestSourceMessage = messageId;
     return messageId;
