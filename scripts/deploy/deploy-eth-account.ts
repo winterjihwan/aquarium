@@ -4,11 +4,17 @@ const ETHccipRouter__ADDRESS = "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
 const ARBccipRouter__ADDRESS = "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165"
 
 async function main() {
-  const wallet = ethers.Wallet.createRandom()
-  const account = await hre.ethers.getContractFactory("Account")
-  const Account = await account.deploy(wallet.address, ETHccipRouter__ADDRESS)
-  await Account.waitForDeployment()
-  console.log(`Account deployed to: ${Account.target}`)
+  // const wallet = ethers.Wallet.createRandom()
+  // const account = await hre.ethers.getContractFactory("Account")
+  // const Account = await account.deploy(wallet.address, ETHccipRouter__ADDRESS)
+  // await Account.waitForDeployment()
+  // console.log(`Account deployed to: ${Account.target}`)
+
+  const [signer] = await hre.ethers.getSigners()
+  const accountNative = await hre.ethers.getContractFactory("AccountNative")
+  const AccountNative = await accountNative.deploy(signer.address, ETHccipRouter__ADDRESS)
+  await AccountNative.waitForDeployment()
+  console.log(`AccountNative deployed to: ${AccountNative.target}`)
 }
 
 main()

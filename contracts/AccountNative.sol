@@ -139,43 +139,75 @@ contract AccountNative is IAccount, CCIPReceiver {
   }
 
   // ------------------------------ STAKING ------------------------------
-  address public ROUTER02 = 0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008;
+  address public ROUTER02 = 0x139D70E24b8C82539800EEB99510BfB8B09eaF68;
+  address public WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
   IUniswapV2Router02 public uniswapRouter = IUniswapV2Router02(ROUTER02);
 
-  function addLiquidity(address tokenA, address tokenB, uint256 amountA, uint256 amountB) external {
-    IERC20(tokenA).approve(ROUTER02, amountA * 3);
-    IERC20(tokenB).approve(ROUTER02, amountB * 3);
+  function incubate(address token1, address token2, uint initialValue, uint deadline) external {
+    (bool success, ) = WETH.call{value: initialValue}(abi.encodeWithSignature("deposit()"));
+    require(success, "WETH Deposit failed");
 
+    // Approve the router to spend the tokens
+    IERC20(token1).approve(address(uniswapRouter), 10000 ether);
+
+    // Perform the swap from token1 to token2
+    address[] memory path = new address[](2);
+    path[0] = token1;
+    path[1] = token2;
+
+    // 0.75 * initialValue
+    uint256 swapTokenWETH = (3 * initialValue) / 4;
+    uint[] memory amounts = uniswapRouter.swapExactTokensForTokens(swapTokenWETH, 0, path, address(this), deadline);
+
+    // 0.25 * initialValue(에 상응하는 값)
+    uint256 addLiquidityAmountToken2 = amounts[1] / 3;
+    IERC20(token2).approve(address(uniswapRouter), 10000 ether);
     uniswapRouter.addLiquidity(
-      tokenA,
-      tokenB,
-      amountA,
-      amountB,
+      token1,
+      token2,
+      swapTokenWETH / 3,
+      addLiquidityAmountToken2,
       0,
       0,
       address(this),
-      block.timestamp + 300 // 5 minutes deadline
+      deadline
     );
   }
 
-  function liquidateLiquidity(
-    address tokenA,
-    address tokenB,
-    address pair,
-    uint256 liquidity
-  ) external returns (uint256 amountA, uint256 amountB) {
-    IERC20(pair).approve(ROUTER02, liquidity * 2);
+  // function addLiquidity(address tokenA, address tokenB, uint256 amountA, uint256 amountB) external {
+  //   IERC20(tokenA).approve(ROUTER02, amountA * 3);
+  //   IERC20(tokenB).approve(ROUTER02, amountB * 3);
 
-    (amountA, amountB) = uniswapRouter.removeLiquidity(
-      tokenA,
-      tokenB,
-      liquidity,
-      0,
-      0,
-      address(this),
-      block.timestamp + 300
-    );
-  }
+  //   uniswapRouter.addLiquidity(
+  //     tokenA,
+  //     tokenB,
+  //     amountA,
+  //     amountB,
+  //     0,
+  //     0,
+  //     address(this),
+  //     block.timestamp + 300 // 5 minutes deadline
+  //   );
+  // }
+
+  // function liquidateLiquidity(
+  //   address tokenA,
+  //   address tokenB,
+  //   address pair,
+  //   uint256 liquidity
+  // ) external returns (uint256 amountA, uint256 amountB) {
+  //   IERC20(pair).approve(ROUTER02, liquidity * 2);
+
+  //   (amountA, amountB) = uniswapRouter.removeLiquidity(
+  //     tokenA,
+  //     tokenB,
+  //     liquidity,
+  //     0,
+  //     0,
+  //     address(this),
+  //     block.timestamp + 300
+  //   );
+  // }
 
   // ------------------------------ FALLBACK ------------------------------
   receive() external payable {}
