@@ -12,6 +12,10 @@ import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications
 import {SafeERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Paymaster} from "./Paymaster.sol";
 
+event LiquidityAdded(uint amountA, uint amountB, uint liquidity);
+event LiquidityAdditionFailed(string reason);
+event LowLevelLiquidityAdditionFailed(bytes lowLevelData);
+
 contract AccountDestination is IAccount, CCIPReceiver {
   event CallResult(bool success, bytes data);
 
@@ -66,34 +70,105 @@ contract AccountDestination is IAccount, CCIPReceiver {
   }
 
   // ------------------------------ CCIP ------------------------------
-  function encodeData(
+  function encodeDataIncubation(
     uint8 multiplex,
-    address AAFactory,
-    address AAUser,
-    address router
-  ) internal pure returns (bytes memory) {
-    bytes memory callData = abi.encodeWithSignature("createAccount(address,address)", AAUser, router);
-    bytes memory encodedData = abi.encode(multiplex, AAFactory, callData);
+    address token1,
+    address token2,
+    uint256 _amount
+  ) external pure returns (bytes memory) {
+    bytes memory encodedData = abi.encode(multiplex, token1, token2, _amount);
 
     return encodedData;
   }
 
   function _ccipReceive(
-    Client.Any2EVMMessage memory message
-  ) internal override validateNativeAccount(abi.decode(message.sender, (address))) {
-    (uint8 multiplex, address AAFactory, bytes memory callData) = abi.decode(message.data, (uint8, address, bytes));
+    Client.Any2EVMMessage memory message // validateNativeAccount(abi.decode(message.sender, (address)))
+  ) internal override {
+    uint8 multiplex;
+    bytes memory encodedData = message.data;
+    assembly {
+      let dataPtr := add(encodedData, 32)
+      multiplex := byte(31, mload(dataPtr))
+    }
 
     // Initialize AA multiplexor
     if (multiplex == 0) {
+      (uint8 unused, address AAFactory, bytes memory callData) = abi.decode(message.data, (uint8, address, bytes));
       (bool success, bytes memory returnData) = AAFactory.call(callData);
       require(success, "Low-level call failed");
 
+      unused = 0;
       creationAddress = abi.decode(returnData, (address));
+    }
+
+    // Incubate Destination
+    if (multiplex == 1){
+      (uint8 unused, address token1, address token2, uint256 _amount) = abi.decode(message.data, (uint8, address, address, uint256));
+      unused = 0;
+      
+      _incubateDestination(
+        token1,
+        token2,
+        _amount,
+        0,
+        0,
+        msg.sender,
+        block.timestamp + 1000
+      );
     }
 
     s_lastReceivedMessageId = message.messageId;
     s_lastReceivedText = abi.decode(message.data, (string));
     s_lastReceivedTextBytes = message.data;
+  }
+
+  function _incubateDestination(
+    address token1,
+    address token2,
+    uint amountToken1,
+    uint amountToken1Min,
+    uint amountToken2Min,
+    address to,
+    uint deadline
+  ) internal {
+    // Approve the router to spend the tokens
+    IERC20(token1).approve(address(uniswapRouter), 10000 ether);
+
+    // Perform the swap from token1 to token2
+    address[] memory path = new address[](2);
+    path[0] = token1;
+    path[1] = token2;
+
+    // First swap half of token1 to token2
+    uint[] memory amounts = uniswapRouter.swapExactTokensForTokens(
+      amountToken1 / 2,
+      amountToken1Min,
+      path,
+      address(this),
+      deadline
+    );
+
+    // Add liquidity
+    uint amountToken2 = amounts[1];
+    IERC20(token2).approve(address(uniswapRouter), 1000 ether);
+    try
+      uniswapRouter.addLiquidity(
+        token1,
+        token2,
+        amountToken1 / 2,
+        amountToken2,
+        amountToken1Min,
+        amountToken2Min,
+        to,
+        deadline
+      )
+    returns (uint amountA, uint amountB, uint liquidity) {
+      emit LiquidityAdded(amountA, amountB, liquidity);
+    } catch Error(string memory reason) {
+      emit LiquidityAdditionFailed(reason);
+    } catch (bytes memory lowLevelData) {
+      emit LowLevelLiquidityAdditionFailed(lowLevelData);
+    }
   }
 
   function getLastReceivedMessageDetails()

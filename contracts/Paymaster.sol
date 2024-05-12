@@ -6,6 +6,7 @@ import "./StakeManager.sol";
 import "@openzeppelin/contracts/utils/cryptography/ECDSA.sol";
 import {IRouterClient} from "@chainlink/contracts-ccip/src/v0.8/ccip/interfaces/IRouterClient.sol";
 import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract Paymaster is IPaymaster, StakeManager {
   function validatePaymasterUserOp(
@@ -57,6 +58,24 @@ contract Paymaster is IPaymaster, StakeManager {
     uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
 
     if (fees > address(this).balance) revert("Not enough balance");
+
+    messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
+  }
+
+  function ccipFeeOnBehalfToken(
+    uint64 _destinationChainSelector,
+    address _sourceRouter,
+    Client.EVM2AnyMessage memory evm2AnyMessage,
+    address token,
+    uint256 amount
+  ) external returns (bytes32 messageId) {
+    IRouterClient router = IRouterClient(_sourceRouter);
+    uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
+
+    if (fees > address(this).balance) revert("Not enough balance");
+
+    IERC20(token).transferFrom(msg.sender, address(this), amount);
+    IERC20(token).approve(address(router), amount);
 
     messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
   }

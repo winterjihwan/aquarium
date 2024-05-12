@@ -86,6 +86,54 @@ contract AccountNative is IAccount, CCIPReceiver {
     return messageId;
   }
 
+  function _incubateDestination(
+    uint64 _destinationChainSelector,
+    address _receiver,
+    address _token,
+    uint256 _amount,
+    address token1,
+    address token2,
+    address paymaster
+  ) internal returns (bytes32 messageId) {
+    Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
+    tokenAmounts[0] = Client.EVMTokenAmount({token: _token, amount: _amount});
+
+    bytes memory encodedData = encodeDataIncubate(1, token1, token2, _amount);
+
+    Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
+      receiver: abi.encode(_receiver),
+      data: encodedData,
+      tokenAmounts: tokenAmounts,
+      extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 3_000_000})),
+      feeToken: address(0)
+    });
+
+    IERC20(_token).approve(paymaster, _amount);
+    Paymaster PM = Paymaster(payable(paymaster));
+    messageId = PM.ccipFeeOnBehalfToken(_destinationChainSelector, this.getRouter(), evm2AnyMessage, _token, _amount);
+
+    // IRouterClient router = IRouterClient(this.getRouter());
+    // uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
+    // if (fees > address(this).balance) revert("Not enough balance");
+    // IERC20(_token).approve(address(router), _amount);
+    // messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
+
+    latestSourceMessage = messageId;
+    return messageId;
+  }
+
+  function encodeDataIncubate(
+    uint8 multiplex,
+    address token1,
+    address token2,
+    uint256 _amount
+  ) internal pure returns (bytes memory) {
+    // bytes memory callData = abi.encodeWithSignature("createAccount(address,address)", AAUser, router);
+    bytes memory encodedData = abi.encode(multiplex, token1, token2, _amount);
+
+    return encodedData;
+  }
+
   function encodeData(
     uint8 multiplex,
     address AAFactory,
@@ -138,15 +186,47 @@ contract AccountNative is IAccount, CCIPReceiver {
     return IERC20(token).balanceOf(address(this));
   }
 
-  // ------------------------------ STAKING ------------------------------
+  // ------------------------------ Incubation ------------------------------
   address public ROUTER02 = 0x139D70E24b8C82539800EEB99510BfB8B09eaF68;
   address public WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
   IUniswapV2Router02 public uniswapRouter = IUniswapV2Router02(ROUTER02);
 
-  function incubate(address token1, address token2, uint initialValue, uint deadline) external {
+  function incubate(
+    uint64 _destinationChainSelector,
+    address _receiverDestination,
+    address _SendToken,
+    address token1,
+    address token2,
+    address token1destination,
+    address token2destination,
+    uint initialValue,
+    uint deadline,
+    address paymaster
+  ) external {
     (bool success, ) = WETH.call{value: initialValue}(abi.encodeWithSignature("deposit()"));
     require(success, "WETH Deposit failed");
 
+    uint[] memory amounts = _incubateNative(token1, token2, initialValue, deadline);
+
+    // 0.5 * initialValue(에 상응하는 값)
+    uint256 incubateAmount = (amounts[1] * 2) / 3;
+    _incubateDestination(
+      _destinationChainSelector,
+      _receiverDestination,
+      _SendToken,
+      incubateAmount,
+      token1destination,
+      token2destination,
+      paymaster
+    );
+  }
+
+  function _incubateNative(
+    address token1,
+    address token2,
+    uint initialValue,
+    uint deadline
+  ) internal returns (uint[] memory amounts) {
     // Approve the router to spend the tokens
     IERC20(token1).approve(address(uniswapRouter), 10000 ether);
 
@@ -155,12 +235,12 @@ contract AccountNative is IAccount, CCIPReceiver {
     path[0] = token1;
     path[1] = token2;
 
-    // 0.75 * initialValue
     uint256 swapTokenWETH = (3 * initialValue) / 4;
-    uint[] memory amounts = uniswapRouter.swapExactTokensForTokens(swapTokenWETH, 0, path, address(this), deadline);
+    amounts = uniswapRouter.swapExactTokensForTokens(swapTokenWETH, 0, path, address(this), deadline);
 
     // 0.25 * initialValue(에 상응하는 값)
     uint256 addLiquidityAmountToken2 = amounts[1] / 3;
+
     IERC20(token2).approve(address(uniswapRouter), 10000 ether);
     uniswapRouter.addLiquidity(
       token1,
@@ -173,41 +253,6 @@ contract AccountNative is IAccount, CCIPReceiver {
       deadline
     );
   }
-
-  // function addLiquidity(address tokenA, address tokenB, uint256 amountA, uint256 amountB) external {
-  //   IERC20(tokenA).approve(ROUTER02, amountA * 3);
-  //   IERC20(tokenB).approve(ROUTER02, amountB * 3);
-
-  //   uniswapRouter.addLiquidity(
-  //     tokenA,
-  //     tokenB,
-  //     amountA,
-  //     amountB,
-  //     0,
-  //     0,
-  //     address(this),
-  //     block.timestamp + 300 // 5 minutes deadline
-  //   );
-  // }
-
-  // function liquidateLiquidity(
-  //   address tokenA,
-  //   address tokenB,
-  //   address pair,
-  //   uint256 liquidity
-  // ) external returns (uint256 amountA, uint256 amountB) {
-  //   IERC20(pair).approve(ROUTER02, liquidity * 2);
-
-  //   (amountA, amountB) = uniswapRouter.removeLiquidity(
-  //     tokenA,
-  //     tokenB,
-  //     liquidity,
-  //     0,
-  //     0,
-  //     address(this),
-  //     block.timestamp + 300
-  //   );
-  // }
 
   // ------------------------------ FALLBACK ------------------------------
   receive() external payable {}

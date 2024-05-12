@@ -3,15 +3,25 @@ import { ethers } from "ethers"
 const ETHccipRouter__ADDRESS = "0x0BF3dE8c5D3e8A2B34D2BEeB17ABfCeBaf363A59"
 const ARBccipRouter__ADDRESS = "0x2a9C5afB0d0e4BAb2BCdaE109EC4b0c4Be15a165"
 
-const Arb_ACCOUNT = "0x5B6Ea6d828c57749cD15B0F7c1558486b02C2e00"
+const nativeAccount = "0x632D1ef3f722cDF736FA61Bbd5CAa9a3E58D7E7D"
 
 async function main() {
   const [signer] = await hre.ethers.getSigners()
 
-  const account = await hre.ethers.getContractFactory("Account")
-  const Account = await account.deploy(signer.address, ARBccipRouter__ADDRESS)
-  await Account.waitForDeployment()
-  console.log(`Account deployed to: ${Account.target}`)
+  // const account = await hre.ethers.getContractFactory("Account")
+  // const Account = await account.deploy(signer.address, ARBccipRouter__ADDRESS)
+  // await Account.waitForDeployment()
+  // console.log(`Account deployed to: ${Account.target}`)
+
+  // const af = await hre.ethers.getContractFactory("AccountFactory")
+  // const AF = await af.deploy()
+  // await AF.waitForDeployment()
+  // console.log(`AF deployed to: ${AF.target}`)
+
+  const accountDestination = await hre.ethers.getContractFactory("AccountDestination")
+  const AccountDestination = await accountDestination.deploy(signer.address, ARBccipRouter__ADDRESS, nativeAccount)
+  await AccountDestination.waitForDeployment()
+  console.log(`AccountDestination deployed to: ${AccountDestination.target}`)
 }
 
 main()
