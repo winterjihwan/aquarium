@@ -7,7 +7,7 @@ import { ethers } from "ethers"
 // v는 임의의 프라이빗키로 실행중 ^는 0x10으로 시작하는 실제 프라이빗키의 센더 계정
 // [ Account Native / Destination ]
 const ACCOUNT_NATIVE__ADDRESS = "0x805fcc76e329f13188df4298588e32abd325fd90"
-const ACCOUNT_DESTINATION__ADDRESS = "0x0C901bfA817a5B107aA8E473C6764cf2dffC277A"
+const ACCOUNT_DESTINATION__ADDRESS = "0xF2BDEBB36eE1D1B5184423765D9Ca2452DC96b05"
 
 // NEW - arb
 const Creator__ADDRESS = "0x4b377f7fe6206c305765b10Ae504B6f091396710"
@@ -168,8 +168,8 @@ const main = async () => {
     initCode,
     // callData: AccountNative.interface.encodeFunctionData("initAA"),
     // callData: AAInitializeDestinationCallData,
-    callData: transferSeedCallData,
-    // callData: callIncubateCallData,
+    // callData: transferSeedCallData,
+    callData: callIncubateCallData,
     paymasterAndData: PM_ETH_ADDRESS,
     signature:
       "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c",
