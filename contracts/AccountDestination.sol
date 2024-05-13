@@ -118,7 +118,6 @@ contract AccountDestination is IAccount, CCIPReceiver {
     }
 
     s_lastReceivedMessageId = message.messageId;
-    s_lastReceivedText = abi.decode(message.data, (string));
     s_lastReceivedTextBytes = message.data;
   }
 
@@ -196,7 +195,7 @@ contract AccountDestination is IAccount, CCIPReceiver {
   }
 
   // ------------------------------ STAKING ------------------------------
-  address public ROUTER02 = 0xC532a74256D3Db42D0Bf7a0400fEFDbad7694008;
+  address public ROUTER02 = 0x641E13E0AEdf07E48205322AE19f565A81bD4ca5;
   IUniswapV2Router02 public uniswapRouter = IUniswapV2Router02(ROUTER02);
 
   function addLiquidity(address tokenA, address tokenB, uint256 amountA, uint256 amountB) external {

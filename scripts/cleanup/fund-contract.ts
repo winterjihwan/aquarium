@@ -8,7 +8,7 @@ const main = async () => {
 
   const tx = {
     to: CA,
-    value: ethers.parseEther("0.5"),
+    value: ethers.parseEther("0.1"),
     gaslimit: 1000000,
   }
 

@@ -43,8 +43,8 @@ const config: HardhatUserConfig = {
   networks: {
     sepolia: {
       url: process.env.RPC_URL,
-      // accounts: ["edb769fce5204ef5273f56a309e03ffbc1d0739e15d5084d8bf400c7a4e87435", process.env.PRIVATE_KEY!],
-      accounts: [process.env.PRIVATE_KEY!],
+      accounts: ["ea3eebe8525131c42bfd370d5c2f3319894003366139e27adb03bd528aab29a5", process.env.PRIVATE_KEY!],
+      // accounts: [process.env.PRIVATE_KEY!],
       blockGasLimit: 100000000,
     },
     asepolia: {

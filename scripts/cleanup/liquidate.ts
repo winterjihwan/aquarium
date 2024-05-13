@@ -2,7 +2,7 @@ import { ethers } from "ethers"
 import { abi as ROUTER02__ABI } from "@uniswap/v2-periphery/build/IUniswapV2Router02.json"
 import { abi as FACTORY__ABI } from "@uniswap/v2-core/build/IUniswapV2Factory.json"
 
-const ERC20__ABI = require("../abi/ERC20.json")
+const ERC20__ABI = require("../../abi/ERC20.json")
 const ROUTER02__ADDRESS = "0xc532a74256d3db42d0bf7a0400fefdbad7694008"
 const FACTORY__ADDRESS = "0xc9f18c25Cfca2975d6eD18Fc63962EBd1083e978"
 

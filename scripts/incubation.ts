@@ -1,5 +1,4 @@
 import { ethers } from "ethers"
-import hre from "hardhat"
 
 // AA constants
 const AF_ETH_ADDRESS = "0xa374490b77b72A76cCcF8f57E8942E4F4C4ADb8f"
@@ -14,8 +13,8 @@ const ETHCHAIN = "16015286601757825753"
 const ARBCHAIN = "3478487238524512106"
 
 // [ Account Native / Destination ]
-const ACCOUNT_NATIVE__ADDRESS = "0x75D90E3c2B82eA9FBEe965C98CC0192B44dABFF7"
-const ACCOUNT_DESTINATION__ADDRESS = "0x1c00d0f1eCF7F08E2048b5eB98c758F912C8d149"
+const ACCOUNT_NATIVE__ADDRESS = "0x00e81DDa5d56196cCb9a5FeE71cC5d6EAA0f91e4"
+const ACCOUNT_DESTINATION__ADDRESS = "0x0C901bfA817a5B107aA8E473C6764cf2dffC277A"
 
 // [ Uniswap ]
 const factoryArtifact = require("@uniswap/v2-core/build/UniswapV2Factory.json")
@@ -49,9 +48,13 @@ const MULTICALL__ADDRESS = "0x05b72D2354162108F1b726F5e135e357A86f60bD"
 const main = async () => {
   const [signer] = await hre.ethers.getSigners()
 
+  const provider = new ethers.JsonRpcProvider(process.env.RPC_URL)
+
   const AccountNative = await hre.ethers.getContractAt("AccountNative", ACCOUNT_NATIVE__ADDRESS)
+
   const initialValue = ethers.parseEther("0.1")
-  const deadline = Math.floor(Date.now() / 1000) + 60 * 10
+  const deadline = Math.floor(Date.now() / 1000) + 60 * 5
+
   const incubateTx = await AccountNative.incubate(
     ARBCHAIN,
     ACCOUNT_DESTINATION__ADDRESS,
@@ -63,11 +66,22 @@ const main = async () => {
     initialValue,
     deadline,
     PM_ETH_ADDRESS,
-    { gasLimit: 10000000 }
+    { gasLimit: 3000000 }
   )
   console.log("Incubating Weth / USDC...", incubateTx.hash)
   await incubateTx.wait()
   console.log("Incubated!")
+
+  // const controlTx = await AccountNative.incubateDestination(
+  //   ARBCHAIN,
+  //   ACCOUNT_DESTINATION__ADDRESS,
+  //   USDC_ARB__ADDRESS,
+  //   LINK_ARB__ADDRESS,
+  //   PM_ETH_ADDRESS
+  // )
+  // console.log("Controlling Destination...", controlTx.hash)
+  // await controlTx.wait()
+  // console.log("Controlled!")
 }
 
 main().catch((error) => {

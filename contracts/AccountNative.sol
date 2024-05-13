@@ -23,6 +23,7 @@ contract AccountNative is IAccount, CCIPReceiver {
   bytes32 private s_lastReceivedMessageId;
   bytes private s_lastReceivedTextBytes;
   string private s_lastReceivedText;
+  uint256 private s_seed = 0;
 
   constructor(address _owner, address _ccipRouter) CCIPReceiver(_ccipRouter) {
     owner = _owner;
@@ -86,7 +87,7 @@ contract AccountNative is IAccount, CCIPReceiver {
     return messageId;
   }
 
-  function _incubateDestination(
+  function _transferSeed(
     uint64 _destinationChainSelector,
     address _receiver,
     address _token,
@@ -98,7 +99,7 @@ contract AccountNative is IAccount, CCIPReceiver {
     Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
     tokenAmounts[0] = Client.EVMTokenAmount({token: _token, amount: _amount});
 
-    bytes memory encodedData = encodeDataIncubate(1, token1, token2, _amount);
+    bytes memory encodedData = encodeDataIncubate(99, token1, token2, _amount);
 
     Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
       receiver: abi.encode(_receiver),
@@ -112,11 +113,34 @@ contract AccountNative is IAccount, CCIPReceiver {
     Paymaster PM = Paymaster(payable(paymaster));
     messageId = PM.ccipFeeOnBehalfToken(_destinationChainSelector, this.getRouter(), evm2AnyMessage, _token, _amount);
 
-    // IRouterClient router = IRouterClient(this.getRouter());
-    // uint256 fees = router.getFee(_destinationChainSelector, evm2AnyMessage);
-    // if (fees > address(this).balance) revert("Not enough balance");
-    // IERC20(_token).approve(address(router), _amount);
-    // messageId = router.ccipSend{value: fees}(_destinationChainSelector, evm2AnyMessage);
+    s_seed = _amount;
+    latestSourceMessage = messageId;
+    return messageId;
+  }
+
+  function incubateDestination(
+    uint64 _destinationChainSelector,
+    address _receiver,
+    address token1,
+    address token2,
+    address paymaster
+  ) external returns (bytes32 messageId) {
+    Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](0);
+
+    require(s_seed > 0, "Seed zero, transfer seed first");
+
+    bytes memory encodedData = encodeDataIncubate(1, token1, token2, s_seed);
+
+    Client.EVM2AnyMessage memory evm2AnyMessage = Client.EVM2AnyMessage({
+      receiver: abi.encode(_receiver),
+      data: encodedData,
+      tokenAmounts: tokenAmounts,
+      extraArgs: Client._argsToBytes(Client.EVMExtraArgsV1({gasLimit: 3_000_000})),
+      feeToken: address(0)
+    });
+
+    Paymaster PM = Paymaster(payable(paymaster));
+    messageId = PM.ccipFeeOnBehalf(_destinationChainSelector, this.getRouter(), evm2AnyMessage);
 
     latestSourceMessage = messageId;
     return messageId;
@@ -210,7 +234,7 @@ contract AccountNative is IAccount, CCIPReceiver {
 
     // 0.5 * initialValue(에 상응하는 값)
     uint256 incubateAmount = (amounts[1] * 2) / 3;
-    _incubateDestination(
+    _transferSeed(
       _destinationChainSelector,
       _receiverDestination,
       _SendToken,
