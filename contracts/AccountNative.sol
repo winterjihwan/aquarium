@@ -11,19 +11,49 @@ import {Client} from "@chainlink/contracts-ccip/src/v0.8/ccip/libraries/Client.s
 import {CCIPReceiver} from "@chainlink/contracts-ccip/src/v0.8/ccip/applications/CCIPReceiver.sol";
 import {SafeERC20} from "@chainlink/contracts-ccip/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Paymaster} from "./Paymaster.sol";
+import "@openzeppelin/contracts/interfaces/IERC1271.sol";
+import {WebAuthn} from "./WebAuthn.sol";
 
-contract AccountNative is IAccount, CCIPReceiver {
-  event CallResult(bool success, bytes data);
+struct Signature {
+  bytes authenticatorData;
+  string clientDataJSON;
+  uint256 challengeLocation;
+  uint256 responseTypeLocation;
+  uint256 r;
+  uint256 s;
+}
+
+struct Call {
+  address dest;
+  uint256 value;
+  bytes data;
+}
+
+struct PublicKey {
+  bytes32 X;
+  bytes32 Y;
+}
+
+event AddedStakedPool(string aquarium, string pool);
+event CallResult(bool success, bytes data);
+
+contract AccountNative is IAccount, CCIPReceiver, IERC1271 {
 
   address public owner;
   uint public salt;
   address public creationAddress;
   bytes32 public latestSourceMessage;
+  PublicKey public publicKey;
+  address[] public logicallyConnectedAccounts;
 
+  uint256 private constant _SIG_VALIDATION_FAILED = 1;
   bytes32 private s_lastReceivedMessageId;
   bytes private s_lastReceivedTextBytes;
   string private s_lastReceivedText;
   uint256 private s_seed = 0;
+
+  string[] private aquariums;
+  mapping(string => string[]) private stakedPools;
 
   constructor(address _owner, address _ccipRouter) CCIPReceiver(_ccipRouter) {
     owner = _owner;
@@ -33,28 +63,88 @@ contract AccountNative is IAccount, CCIPReceiver {
     salt = 0;
   }
 
+  function initialize(bytes32[2] memory aPublicKey) public virtual {
+    _initialize(aPublicKey);
+  }
+
+  function _initialize(bytes32[2] memory aPublicKey) internal virtual {
+    publicKey = PublicKey(aPublicKey[0], aPublicKey[1]);
+  }
+
+  function initializeAquarium() external {
+    addAquarium("eth-sepolia");
+  }
+
+  function _validateSignature(bytes memory message, bytes calldata signature) private view returns (bool) {
+    Signature memory sig = abi.decode(signature, (Signature));
+
+    return
+      WebAuthn.verifySignature({
+        challenge: message,
+        authenticatorData: sig.authenticatorData,
+        requireUserVerification: false,
+        clientDataJSON: sig.clientDataJSON,
+        challengeLocation: sig.challengeLocation,
+        responseTypeLocation: sig.responseTypeLocation,
+        r: sig.r,
+        s: sig.s,
+        x: uint256(publicKey.X),
+        y: uint256(publicKey.Y)
+      });
+  }
+
+  function isValidSignature(
+    bytes32 message,
+    bytes calldata signature
+  ) external view override returns (bytes4 magicValue) {
+    if (_validateSignature(abi.encodePacked(message), signature)) {
+      return IERC1271(this).isValidSignature.selector;
+    }
+    return 0xffffffff;
+  }
+
+  function _validateUserOpSignature(
+    UserOperation calldata userOp,
+    bytes32 userOpHash
+  ) private view returns (uint256 validationData) {
+    bytes memory messageToVerify;
+    bytes calldata signature;
+
+    uint256 sigLength = userOp.signature.length;
+    if (sigLength == 0) return _SIG_VALIDATION_FAILED;
+
+    uint8 version = uint8(userOp.signature[0]);
+    if (version == 1) {
+      if (sigLength < 7) return _SIG_VALIDATION_FAILED;
+      uint48 validUntil = uint48(bytes6(userOp.signature[1:7]));
+
+      signature = userOp.signature[7:];
+      messageToVerify = abi.encodePacked(version, validUntil, userOpHash);
+    } else {
+      return _SIG_VALIDATION_FAILED;
+    }
+
+    if (_validateSignature(messageToVerify, signature)) {
+      return 0;
+    }
+    return _SIG_VALIDATION_FAILED;
+  }
+
   function validateUserOp(
     UserOperation calldata userOp,
     bytes32 userOpHash,
     uint256
-  ) external view returns (uint256 validationData) {
-    address recovered = ECDSA.recover(toEthSignedMessageHash(userOpHash), userOp.signature);
-
-    return owner == recovered ? 0 : 1;
+  ) external virtual override returns (uint256 validationData) {
+    validationData = _validateUserOpSignature(userOp, userOpHash);
+    return 0;
   }
 
-  function toEthSignedMessageHash(bytes32 hash) internal pure returns (bytes32 message) {
-    assembly {
-      mstore(0x00, "\x19Ethereum Signed Message:\n32")
-      mstore(0x1c, hash)
-      message := keccak256(0x00, 0x3c)
-    }
+  function logicalConnect(address account) external {
+    logicallyConnectedAccounts.push(account);
   }
 
-  function execute(address target, bytes memory data) public payable {
-    (bool success, bytes memory result) = target.call(data);
-    require(success, "Call failed");
-    emit CallResult(success, result);
+  function getLogicallyConnectedAccounts() external view returns (address[] memory) {
+    return logicallyConnectedAccounts;
   }
 
   // ------------------------------ CCIP ------------------------------
@@ -67,8 +157,6 @@ contract AccountNative is IAccount, CCIPReceiver {
     address paymaster
   ) external returns (bytes32 messageId) {
     Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](0);
-    // Client.EVMTokenAmount[] memory tokenAmounts = new Client.EVMTokenAmount[](1);
-    // tokenAmounts[0] = Client.EVMTokenAmount({token: _token, amount: _amount});
 
     bytes memory encodedData = encodeData(0, AAFactory, AAUser, destinationRouter);
 
@@ -152,7 +240,6 @@ contract AccountNative is IAccount, CCIPReceiver {
     address token2,
     uint256 _amount
   ) internal pure returns (bytes memory) {
-    // bytes memory callData = abi.encodeWithSignature("createAccount(address,address)", AAUser, router);
     bytes memory encodedData = abi.encode(multiplex, token1, token2, _amount);
 
     return encodedData;
@@ -194,26 +281,10 @@ contract AccountNative is IAccount, CCIPReceiver {
     return (s_lastReceivedMessageId, s_lastReceivedText, s_lastReceivedTextBytes);
   }
 
-  // ------------------------------ DEPOSIT, WITHDRAW ------------------------------
-  function depositToken(address token, uint256 amount) public {
-    require(amount > 0, "Amount must be greater than 0");
-    require(IERC20(token).transferFrom(msg.sender, address(this), amount), "Transfer failed");
-  }
-
-  function withdrawToken(address token, uint256 amount) public {
-    require(amount > 0, "Amount must be greater than 0");
-    require(IERC20(token).balanceOf(address(this)) >= amount, "Insufficient balance");
-    require(IERC20(token).transfer(msg.sender, amount), "Transfer failed");
-  }
-
-  function getTokenBalance(address token) public view returns (uint256) {
-    return IERC20(token).balanceOf(address(this));
-  }
-
   // ------------------------------ Incubation ------------------------------
-  address public ROUTER02 = 0x139D70E24b8C82539800EEB99510BfB8B09eaF68;
-  address public WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
-  IUniswapV2Router02 public uniswapRouter = IUniswapV2Router02(ROUTER02);
+  address public constant ROUTER02 = 0x139D70E24b8C82539800EEB99510BfB8B09eaF68;
+  address public constant WETH = 0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14;
+  IUniswapV2Router02 public constant uniswapRouter = IUniswapV2Router02(ROUTER02);
 
   function incubate(
     uint64 _destinationChainSelector,
@@ -229,6 +300,8 @@ contract AccountNative is IAccount, CCIPReceiver {
   ) external {
     (bool success, ) = WETH.call{value: initialValue}(abi.encodeWithSignature("deposit()"));
     require(success, "WETH Deposit failed");
+    require(IERC20(WETH).balanceOf(address(this)) >= initialValue, "Insufficient WETH balance");
+    require(IERC20(token1).balanceOf(address(this)) >= initialValue, "Insufficient token1 balance");
 
     uint[] memory amounts = _incubateNative(token1, token2, initialValue, deadline);
 
@@ -251,10 +324,9 @@ contract AccountNative is IAccount, CCIPReceiver {
     uint initialValue,
     uint deadline
   ) internal returns (uint[] memory amounts) {
-    // Approve the router to spend the tokens
     IERC20(token1).approve(address(uniswapRouter), 10000 ether);
+    require(IERC20(token1).allowance(address(this), address(uniswapRouter)) >= initialValue, "Insufficient allowance");
 
-    // Perform the swap from token1 to token2
     address[] memory path = new address[](2);
     path[0] = token1;
     path[1] = token2;
@@ -276,6 +348,39 @@ contract AccountNative is IAccount, CCIPReceiver {
       address(this),
       deadline
     );
+
+    if (aquariums.length != 0) {
+      addStakedPool("eth-sepolia", "USDC/WETH");
+    }
+    emit AddedStakedPool("eth-sepolia", "USDC/WETH");
+  }
+
+  // ------------------------------ Aquarium ------------------------------
+  function addAquarium(string memory newAquarium) public {
+    aquariums.push(newAquarium);
+  }
+
+  function addStakedPool(string memory aquarium, string memory newFish) public {
+    require(aquariumExists(aquarium), "Aquarium does not exist.");
+    stakedPools[aquarium].push(newFish);
+  }
+
+  function getAquariums() public view returns (string[] memory) {
+    return aquariums;
+  }
+
+  function getStakedPools(string memory aquarium) public view returns (string[] memory) {
+    require(aquariumExists(aquarium), "Aquarium does not exist.");
+    return stakedPools[aquarium];
+  }
+
+  function aquariumExists(string memory aquarium) private view returns (bool) {
+    for (uint i = 0; i < aquariums.length; i++) {
+      if (keccak256(abi.encodePacked(aquariums[i])) == keccak256(abi.encodePacked(aquarium))) {
+        return true;
+      }
+    }
+    return false;
   }
 
   // ------------------------------ FALLBACK ------------------------------

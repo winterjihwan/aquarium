@@ -1,19 +1,24 @@
 import { ethers } from "ethers"
+import hre from "hardhat"
 
 // public key = 0x10F8BBF39357b5b1Ee82F0C7Bf9d82371df2a1Ff
 
-// NEW - eth
-// const AccountNative__ADDRESS = "0xF71908103D42FfBD1D2b423a794ca8284Ff124A0"
-// v는 임의의 프라이빗키로 실행중 ^는 0x10으로 시작하는 실제 프라이빗키의 센더 계정
+// [ P256 ID and Public Key ]
+const keyId = "0xb11b11a6ec47dc55a7e3e3cd2ee334dcebe844209568be79c7e6e3deab572bf2"
+const publicKey = {
+  x: "0xe77fa4d6e9c39aedb00d4ea8113fd9a7183a683034cad7f80489cf64d8a10c02",
+  y: "0x1f31056eb9d7bbda0f6b888fc90563a2474f3cbf7ab339f23d2eb64cb5c88220",
+}
+
 // [ Account Native / Destination ]
 const ACCOUNT_NATIVE__ADDRESS = "0x805fcc76e329f13188df4298588e32abd325fd90"
 const ACCOUNT_DESTINATION__ADDRESS = "0xF2BDEBB36eE1D1B5184423765D9Ca2452DC96b05"
 
 // NEW - arb
-const Creator__ADDRESS = "0x4b377f7fe6206c305765b10Ae504B6f091396710"
+const Creator__ADDRESS = "0x3c160a8b39419DeE194526F4896902ff37A66de4"
 
 // AA constants
-const AF_ETH_ADDRESS = "0x00De6958F6C3683bc9f8DeA54d6a1D6D875f6Ab3"
+const AF_ETH_ADDRESS = "0x2C9d708D8EA12C4A74Fe063e7998312F4136299d"
 const EP_ETH_ADDRESS = "0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789"
 const PM_ETH_ADDRESS = "0x822f0304d5152B329b08aA50eE3F9F4FF6742E43"
 
@@ -77,7 +82,7 @@ const main = async () => {
 
   const EntryPoint = await hre.ethers.getContractAt("EntryPoint", EP_ETH_ADDRESS)
   const Paymaster = await hre.ethers.getContractAt("Paymaster", PM_ETH_ADDRESS)
-  const AccountFactory = await hre.ethers.getContractFactory("AccountFactory")
+  const AccountFactory = await hre.ethers.getContractAt("AccountFactory", AF_ETH_ADDRESS)
   const AccountNative = await hre.ethers.getContractFactory("AccountNative")
 
   const [signer] = await hre.ethers.getSigners()
@@ -85,7 +90,7 @@ const main = async () => {
 
   let initRouter = CCIPRouter_ETH__ADDRESS
   let initCode =
-    AF_ETH_ADDRESS + AccountFactory.interface.encodeFunctionData("createAccount", [signerAddress, initRouter]).slice(2)
+    AF_ETH_ADDRESS + AccountFactory.interface.encodeFunctionData("createAccount", [[publicKey.x, publicKey.y]]).slice(2)
 
   let sender
   try {
@@ -100,7 +105,7 @@ const main = async () => {
   }
   console.log({ sender, signerAddress })
 
-  const code = await hre.ethers.provider.getCode(sender)
+  const code = await hre.ethers.provider.getCode(sender!)
   if (code != "0x") {
     initCode = "0x"
   }
@@ -164,12 +169,12 @@ const main = async () => {
 
   const userOp: UserOperation = {
     sender, // smart account address
-    nonce: "0x" + (await EntryPoint.getNonce(sender, 0)).toString(16),
+    nonce: "0x" + (await EntryPoint.getNonce(sender!, 0)).toString(16),
     initCode,
-    // callData: AccountNative.interface.encodeFunctionData("initAA"),
+    callData: AccountNative.interface.encodeFunctionData("initAA"),
     // callData: AAInitializeDestinationCallData,
     // callData: transferSeedCallData,
-    callData: callIncubateCallData,
+    // callData: callIncubateCallData,
     paymasterAndData: PM_ETH_ADDRESS,
     signature:
       "0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c",
@@ -184,12 +189,12 @@ const main = async () => {
   userOp.callGasLimit = callGasLimit
 
   const { maxFeePerGas } = await hre.ethers.provider.getFeeData()
-  userOp.maxFeePerGas = "0x" + maxFeePerGas.toString(16)
+  userOp.maxFeePerGas = "0x" + maxFeePerGas!.toString(16)
 
   const maxPriorityFeePerGas = await hre.ethers.provider.send("rundler_maxPriorityFeePerGas")
   userOp.maxPriorityFeePerGas = maxPriorityFeePerGas
 
-  const userOpHash = await EntryPoint.getUserOpHash(userOp)
+  const userOpHash = await EntryPoint.getUserOpHash(userOp as any)
   userOp.signature = await signer.signMessage(hre.ethers.getBytes(userOpHash))
 
   console.log({ userOp })

@@ -82,8 +82,8 @@ contract AccountDestination is IAccount, CCIPReceiver {
   }
 
   function _ccipReceive(
-    Client.Any2EVMMessage memory message // validateNativeAccount(abi.decode(message.sender, (address)))
-  ) internal override {
+    Client.Any2EVMMessage memory message 
+  ) validateNativeAccount(abi.decode(message.sender, (address))) internal override {
     uint8 multiplex;
     bytes memory encodedData = message.data;
     assembly {
